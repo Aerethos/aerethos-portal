@@ -91,6 +91,10 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         }
       }
       setLoading(false);
+      } catch (err) {
+        console.error('Portal load error:', err);
+        setLoading(false);
+      }
     }
     load();
   }, []);
