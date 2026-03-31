@@ -18,7 +18,7 @@ function TrackSearch({
   const [results, setResults] = useState<SpotifyTrack[]>([]);
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     if (query.length < 2) { setResults([]); return; }
