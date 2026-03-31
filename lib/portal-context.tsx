@@ -46,8 +46,9 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   // Load existing submission on mount
   useEffect(() => {
     async function load() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setLoading(false); return; }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { setLoading(false); return; }
 
       const res = await fetch('/api/submit', {
         headers: { Authorization: `Bearer ${session.access_token}` },
