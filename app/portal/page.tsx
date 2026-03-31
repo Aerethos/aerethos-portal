@@ -2,78 +2,96 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 
 export default function PortalLogin() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+    setError('');
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (authError) {
-      setError('Incorrect email or password. Check your details and try again.');
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) {
+        setError('Incorrect email or password.');
+        setLoading(false);
+        return;
+      }
+      router.push('/portal/dashboard');
+    } catch (err) {
+      console.error(err);
+      setError('Something went wrong. Please try again.');
       setLoading(false);
-      return;
     }
-    router.push('/portal/dashboard');
   };
 
   return (
-    <div style={{
-      minHeight: '100vh', background: 'var(--navy-deep)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '24px', position: 'relative', overflow: 'hidden',
-    }}>
-      <div style={{ position:'absolute',inset:0,opacity:0.04,pointerEvents:'none',backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }}/>
-      <div style={{ position:'absolute',top:'35%',left:'50%',transform:'translate(-50%,-50%)',width:600,height:500,borderRadius:'50%',background:'radial-gradient(circle,rgba(176,138,74,0.07) 0%,transparent 65%)',pointerEvents:'none' }}/>
-      <div style={{ width:'100%',maxWidth:440,position:'relative',zIndex:2 }} className="fade-up">
-        <div style={{ textAlign:'center',marginBottom:48 }}>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:36,fontWeight:600,color:'var(--cream)',letterSpacing:'0.05em',marginBottom:6 }}>AerEthos</div>
-          <div style={{ fontSize:10,letterSpacing:'0.22em',textTransform:'uppercase',color:'var(--gold)',opacity:0.7,fontFamily:"'DM Sans',sans-serif" }}>Student Submission Portal</div>
-        </div>
-        <div style={{ background:'white',border:'1px solid rgba(0,53,102,0.1)',borderTop:'2px solid var(--gold)',padding:'40px 40px 36px' }}>
-          <div style={{ marginBottom:32 }}>
-            <div className="ae-eyebrow"><div className="ae-eyebrow-line"/><span className="ae-eyebrow-text">Welcome back</span></div>
-            <h1 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:300,color:'var(--blue)',lineHeight:1.1 }}>
-              Log in to your<br/><em style={{ fontStyle:'italic',color:'var(--gold)' }}>yearbook portal.</em>
-            </h1>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{background:#001020;}
+        .lw{min-height:100vh;background:#001020;display:flex;align-items:center;justify-content:center;padding:24px;font-family:'DM Sans',sans-serif;}
+        .lb{width:100%;max-width:420px;}
+        .ll{text-align:center;margin-bottom:40px;}
+        .ll-t{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:600;color:#F5F3EB;letter-spacing:0.05em;display:block;margin-bottom:6px;}
+        .ll-s{font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#B08A4A;opacity:0.7;}
+        .lc{background:white;border-top:2px solid #B08A4A;padding:36px 36px 32px;}
+        .le{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+        .le-l{width:20px;height:1px;background:#B08A4A;}
+        .le-t{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#B08A4A;}
+        .lh{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:#003566;line-height:1.15;margin-bottom:28px;}
+        .lh em{font-style:italic;color:#B08A4A;}
+        .llab{font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#003566;opacity:0.55;display:block;margin-bottom:7px;}
+        .lin{width:100%;padding:13px 14px;border:1.5px solid rgba(0,53,102,0.15);background:#FAFAF8;color:#003566;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;margin-bottom:18px;border-radius:0;-webkit-appearance:none;}
+        .lin:focus{border-color:#B08A4A;background:white;}
+        .lerr{padding:12px 16px;background:rgba(197,48,48,0.06);border-left:3px solid #c53030;color:#c53030;font-size:13px;margin-bottom:18px;}
+        .lbtn{width:100%;padding:15px;background:#B08A4A;color:#001020;border:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;}
+        .lbtn:disabled{opacity:0.6;cursor:not-allowed;}
+        .lfg{display:block;text-align:center;margin-top:18px;font-size:12px;color:#B08A4A;opacity:0.7;text-decoration:none;}
+        .lhelp{margin-top:20px;text-align:center;font-size:12px;color:#F5F3EB;opacity:0.3;line-height:1.7;}
+        .lhelp a{color:#B08A4A;opacity:0.7;text-decoration:none;}
+      `}</style>
+      <div className="lw">
+        <div className="lb">
+          <div className="ll">
+            <span className="ll-t">AerEthos</span>
+            <span className="ll-s">Student Submission Portal</span>
           </div>
-          {error && <div className="ae-notice warning" style={{ marginBottom:24 }}><div className="ae-notice-body">{error}</div></div>}
-          <form onSubmit={handleLogin}>
-            <div style={{ marginBottom:20 }}>
-              <label className="ae-label">Email Address</label>
-              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your.name@school.ie" className="ae-input" required/>
+          <div className="lc">
+            <div className="le">
+              <div className="le-l" />
+              <span className="le-t">Welcome back</span>
             </div>
-            <div style={{ marginBottom:28 }}>
-              <label className="ae-label">Password</label>
-              <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter your password" className="ae-input" required/>
-            </div>
-            <button type="submit" className="ae-btn-primary" style={{ width:'100%' }} disabled={loading}>
-              <span style={{ display:'flex',alignItems:'center',justifyContent:'center',gap:10 }}>
-                {loading && <span style={{ width:14,height:14,border:'2px solid rgba(0,16,32,0.2)',borderTopColor:'var(--navy-deep)',borderRadius:'50%',display:'inline-block',animation:'spin 0.7s linear infinite' }}/>}
+            <h1 className="lh">Log in to your<br /><em>yearbook portal.</em></h1>
+            {error && <div className="lerr">{error}</div>}
+            <form onSubmit={handleLogin}>
+              <label className="llab">Email Address</label>
+              <input className="lin" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your.name@school.ie" required autoComplete="email" />
+              <label className="llab">Password</label>
+              <input className="lin" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required autoComplete="current-password" style={{ marginBottom: 24 }} />
+              <button className="lbtn" type="submit" disabled={loading}>
                 {loading ? 'Signing in...' : 'Log In →'}
-              </span>
-            </button>
-          </form>
-          <div style={{ marginTop:20,textAlign:'center' }}>
-            <a href="#" style={{ fontSize:12,color:'var(--gold)',opacity:0.7,textDecoration:'none',fontFamily:"'DM Sans',sans-serif" }}>Forgot your password?</a>
+              </button>
+            </form>
+            <a href="#" className="lfg">Forgot your password?</a>
           </div>
-        </div>
-        <div style={{ marginTop:24,textAlign:'center' }}>
-          <p style={{ fontSize:12,color:'var(--cream)',opacity:0.35,fontFamily:"'DM Sans',sans-serif",lineHeight:1.7 }}>
-            First time? Check your email for your login details.<br/>
-            Need help? <a href="mailto:nathan@aerethos.com" style={{ color:'var(--gold)',opacity:0.7,textDecoration:'none' }}>nathan@aerethos.com</a>
+          <p className="lhelp">
+            First time? Check your email for login details.<br />
+            Need help? <a href="mailto:nathan@aerethos.com">nathan@aerethos.com</a>
           </p>
         </div>
       </div>
-    </div>
+    </>
   );
 }
