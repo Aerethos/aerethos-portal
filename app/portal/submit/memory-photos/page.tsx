@@ -57,7 +57,7 @@ export default function MemoryPhotosStep() {
         }
       }
 
-      updateForm({ memoryPhotos: photos });
+      updateForm({ memoryPhotos: photos.filter(p => p.file) as { id: string; url: string; file: File }[] });
       await saveStep({ memory_photo_urls: uploadedUrls });
       router.push('/portal/submit/quote');
     } finally {
