@@ -320,6 +320,25 @@ export default function AdminDashboard() {
                       >
                         Email Student →
                       </a>
+                      {s.memory_photo_urls?.length > 0 && (
+                        <button
+                          onClick={() => {
+                            s.memory_photo_urls.forEach((url, idx) => {
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.target = '_blank';
+                              a.download = `${s.students?.full_name?.replace(/\s+/g, '-') ?? 'student'}-memory-${idx + 1}.jpg`;
+                              a.rel = 'noopener noreferrer';
+                              a.click();
+                            });
+                          }}
+                          style={{ padding: '10px 20px', background: 'transparent', border: '1px solid rgba(0,53,102,0.2)', color: 'var(--blue)', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', transition: 'all 0.15s' }}
+                          onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--gold)'}
+                          onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(0,53,102,0.2)'}
+                        >
+                          ↓ Download {s.memory_photo_urls.length} Photos
+                        </button>
+                      )}
                       <button
                         onClick={() => updateStatus(s.id, 'in_progress', '')}
                         disabled={actionLoading}
