@@ -7,8 +7,11 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
     remotePatterns: [
       { protocol: 'https', hostname: '*.supabase.co' },
-      { protocol: 'https', hostname: 'i.scdn.co' },
-      { protocol: 'https', hostname: 'mosaic.scdn.co' },
+      { protocol: 'https', hostname: 'is1-ssl.mzstatic.com' },
+      { protocol: 'https', hostname: 'is2-ssl.mzstatic.com' },
+      { protocol: 'https', hostname: 'is3-ssl.mzstatic.com' },
+      { protocol: 'https', hostname: 'is4-ssl.mzstatic.com' },
+      { protocol: 'https', hostname: 'is5-ssl.mzstatic.com' },
     ],
   },
 };
