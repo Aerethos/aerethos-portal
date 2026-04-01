@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?? '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?? '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?? '';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-key';
 
 // ── Browser client (used in components) ──────────────────────────────────────
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -11,7 +11,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
-
 export async function getSession() {
   const { data: { session } } = await supabase.auth.getSession();
   return session;
@@ -55,12 +54,10 @@ export async function upsertSubmission(
     )
     .select()
     .single();
-
   return { data, error };
 }
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
-
 export async function uploadFile(
   bucket: 'profile-photos' | 'memory-photos',
   path: string,
@@ -69,9 +66,7 @@ export async function uploadFile(
   const { error } = await supabase.storage
     .from(bucket)
     .upload(path, file, { upsert: true });
-
   if (error) { console.error('Upload error:', error); return null; }
-
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
 }
