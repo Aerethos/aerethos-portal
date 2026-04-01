@@ -19,7 +19,20 @@ function TrackSearch({
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const containerRef = useRef<HTMLDivElement>(null);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowResults(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Spotify search with debounce
   useEffect(() => {
     if (query.length < 2) { setResults([]); setShowResults(false); return; }
     clearTimeout(debounceRef.current);
@@ -27,11 +40,13 @@ function TrackSearch({
       setSearching(true);
       try {
         const res = await fetch(`/api/spotify?q=${encodeURIComponent(query)}`);
+        if (!res.ok) throw new Error('Search failed');
         const data = await res.json();
         setResults(data.tracks ?? []);
         setShowResults(true);
       } catch {
         setResults([]);
+        setShowResults(false);
       } finally {
         setSearching(false);
       }
@@ -46,9 +61,10 @@ function TrackSearch({
   };
 
   return (
-    <div className="track-card">
+    <div className="track-card" ref={containerRef}>
       <div className="track-card-label">Track 0{num}</div>
 
+      {/* Confirmed track display */}
       {selected && !showResults && (
         <div className="track-found" style={{ marginBottom: 16 }}>
           {selected.albumArtUrl && (
@@ -70,7 +86,7 @@ function TrackSearch({
             </div>
           </div>
           <button
-            onClick={() => { onSelect(null as unknown as SpotifyTrack); setQuery(''); }}
+            onClick={() => { onSelect(null as unknown as SpotifyTrack); setQuery(''); setResults([]); }}
             className="ae-btn-ghost"
             style={{ fontSize: 10, padding: '6px 12px' }}
           >
@@ -79,19 +95,23 @@ function TrackSearch({
         </div>
       )}
 
+      {/* Search input */}
       <div style={{ position: 'relative' }}>
         <label className="ae-label">
-          {selected ? 'Search for a different track' : 'Search Spotify'}
+          {selected && !showResults ? 'Search for a different track' : 'Search Spotify'}
         </label>
         <div style={{ position: 'relative' }}>
           <input
             className="ae-input"
             type="text"
             value={query}
-            onChange={e => { setQuery(e.target.value); setShowResults(true); }}
+            onChange={e => {
+              setQuery(e.target.value);
+              if (e.target.value.length >= 2) setShowResults(true);
+            }}
             onFocus={() => results.length > 0 && setShowResults(true)}
-            onBlur={() => setTimeout(() => setShowResults(false), 300)}
             placeholder="Song title or artist..."
+            autoComplete="off"
           />
           {searching && (
             <div style={{
@@ -105,13 +125,16 @@ function TrackSearch({
           )}
         </div>
 
+        {/* Results dropdown */}
         {showResults && results.length > 0 && (
           <div style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
             background: 'white',
             border: '1px solid rgba(0,53,102,0.1)',
             borderTop: '2px solid var(--gold)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            maxHeight: 320,
+            overflowY: 'auto',
           }}>
             {results.map(track => (
               <button
@@ -125,26 +148,42 @@ function TrackSearch({
                   borderBottom: '1px solid rgba(0,53,102,0.05)',
                   textAlign: 'left', transition: 'background 0.1s',
                 }}
-                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,53,102,0.03)'}
+                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,53,102,0.04)'}
                 onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'none'}
               >
-                {track.albumArtUrl && (
+                {track.albumArtUrl ? (
                   <img
                     src={track.albumArtUrl}
                     alt={track.albumName}
                     style={{ width: 40, height: 40, flexShrink: 0, objectFit: 'cover' }}
                   />
+                ) : (
+                  <div style={{ width: 40, height: 40, flexShrink: 0, background: 'rgba(0,53,102,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>♫</div>
                 )}
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--blue)', fontFamily: "'DM Sans', sans-serif" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--blue)', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {track.title}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--blue)', opacity: 0.5 }}>
+                  <div style={{ fontSize: 11, color: 'var(--blue)', opacity: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {track.artist} · {track.albumName}
                   </div>
                 </div>
               </button>
             ))}
+          </div>
+        )}
+
+        {/* No results message */}
+        {showResults && !searching && results.length === 0 && query.length >= 2 && (
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+            background: 'white',
+            border: '1px solid rgba(0,53,102,0.1)',
+            borderTop: '2px solid var(--gold)',
+            padding: '16px 14px',
+            fontSize: 13, color: 'var(--blue)', opacity: 0.5,
+          }}>
+            No results found. Try a different search.
           </div>
         )}
       </div>
@@ -220,8 +259,8 @@ export default function TopTracksStep() {
           <div className="ae-notice" style={{ marginBottom: 36 }}>
             <div className="ae-notice-body">
               Can&apos;t find your track? Try searching just the song title, or just the artist name.
-              Spotify&apos;s catalogue covers most songs — if yours isn&apos;t there, contact
-              <a href="mailto:nathan@aerethos.com" style={{ color: 'var(--gold)', marginLeft: 4 }}>nathan@aerethos.com</a> and we&apos;ll sort it.
+              Spotify&apos;s catalogue covers most songs — if yours isn&apos;t there, contact{' '}
+              <a href="mailto:nathan@aerethos.com" style={{ color: 'var(--gold)' }}>nathan@aerethos.com</a> and we&apos;ll sort it.
             </div>
           </div>
 
