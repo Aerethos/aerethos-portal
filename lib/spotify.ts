@@ -1,128 +1,75 @@
 import type { SpotifyTrack } from '@/types';
 
-// ── Get access token (Client Credentials flow — no user login needed) ─────────
-async function getSpotifyToken(): Promise<string> {
-  const clientId = process.env.SPOTIFY_CLIENT_ID || '';
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET || '';
+// ── iTunes Search API — free, no auth, no Premium needed ─────────────────────
+// Reuses SpotifyTrack type — shape is identical
 
-  if (!clientId || !clientSecret) {
-    throw new Error('Spotify credentials missing from environment variables');
-  }
-
-  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-
-  const res = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-    cache: 'no-store',
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    console.error('Spotify auth failed:', res.status, JSON.stringify(data));
-    throw new Error(`Spotify auth failed: ${data.error} — ${data.error_description}`);
-  }
-
-  console.log('Spotify token obtained successfully');
-  return data.access_token;
-}
-
-// ── Search for tracks ──────────────────────────────────────────────────────────
 export async function searchSpotifyTracks(
   query: string,
   limit = 5
 ): Promise<SpotifyTrack[]> {
-  let token: string;
-
-  try {
-    token = await getSpotifyToken();
-  } catch (err) {
-    console.error('Failed to get Spotify token:', err);
-    return [];
-  }
-
   const params = new URLSearchParams({
-    q: query,
-    type: 'track',
+    term: query,
+    entity: 'song',
     limit: String(limit),
-    market: 'IE',
+    country: 'IE',
   });
 
-  const res = await fetch(
-    `https://api.spotify.com/v1/search?${params}`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
+  try {
+    const res = await fetch(
+      `https://itunes.apple.com/search?${params}`,
+      { cache: 'no-store' }
+    );
+
+    if (!res.ok) {
+      console.error('iTunes search failed:', res.status);
+      return [];
     }
-  );
 
-  if (!res.ok) {
-    const body = await res.text();
-    console.error('Spotify search failed:', res.status, body);
+    const data = await res.json();
+    if (!data.results?.length) return [];
+
+    return data.results.map((item: iTunesTrack) => ({
+      id: String(item.trackId),
+      title: item.trackName,
+      artist: item.artistName,
+      albumName: item.collectionName ?? '',
+      albumArtUrl: (item.artworkUrl100 ?? '').replace('100x100bb', '300x300bb'),
+      previewUrl: item.previewUrl ?? null,
+    }));
+  } catch (err) {
+    console.error('iTunes search error:', err);
     return [];
   }
-
-  const data = await res.json();
-
-  if (!data.tracks?.items) {
-    console.error('Unexpected Spotify response:', JSON.stringify(data));
-    return [];
-  }
-
-  return data.tracks.items.map((item: SpotifyAPITrack) => ({
-    id: item.id,
-    title: item.name,
-    artist: item.artists.map((a: { name: string }) => a.name).join(', '),
-    albumName: item.album.name,
-    albumArtUrl: item.album.images[0]?.url ?? '',
-    previewUrl: item.preview_url,
-  }));
 }
 
-// ── Get a specific track by ID ─────────────────────────────────────────────────
 export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | null> {
-  let token: string;
-
   try {
-    token = await getSpotifyToken();
+    const res = await fetch(
+      `https://itunes.apple.com/lookup?id=${trackId}`,
+      { cache: 'no-store' }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.results?.[0]) return null;
+    const item: iTunesTrack = data.results[0];
+    return {
+      id: String(item.trackId),
+      title: item.trackName,
+      artist: item.artistName,
+      albumName: item.collectionName ?? '',
+      albumArtUrl: (item.artworkUrl100 ?? '').replace('100x100bb', '300x300bb'),
+      previewUrl: item.previewUrl ?? null,
+    };
   } catch {
     return null;
   }
-
-  const res = await fetch(
-    `https://api.spotify.com/v1/tracks/${trackId}`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    }
-  );
-
-  if (!res.ok) return null;
-
-  const item: SpotifyAPITrack = await res.json();
-
-  return {
-    id: item.id,
-    title: item.name,
-    artist: item.artists.map((a: { name: string }) => a.name).join(', '),
-    albumName: item.album.name,
-    albumArtUrl: item.album.images[0]?.url ?? '',
-    previewUrl: item.preview_url,
-  };
 }
 
-interface SpotifyAPITrack {
-  id: string;
-  name: string;
-  preview_url: string | null;
-  artists: Array<{ name: string }>;
-  album: {
-    name: string;
-    images: Array<{ url: string; width: number; height: number }>;
-  };
+interface iTunesTrack {
+  trackId: number;
+  trackName: string;
+  artistName: string;
+  collectionName: string;
+  artworkUrl100: string;
+  previewUrl?: string;
 }
