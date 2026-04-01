@@ -39,7 +39,7 @@ export default function ReviewStep() {
         .eq('id', session.user.id)
         .single();
       if (data?.schools) {
-        const d = new Date((data.schools as { deadline: string }).deadline);
+        const d = new Date((data.schools as unknown as { deadline: string }).deadline);
         setDeadline(d.toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' }));
       }
     }
