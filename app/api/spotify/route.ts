@@ -5,15 +5,14 @@ export async function GET(req: NextRequest) {
   const query = req.nextUrl.searchParams.get('q');
 
   if (!query || query.trim().length < 2) {
-    return NextResponse.json({ error: 'Query too short' }, { status: 400 });
+    return NextResponse.json({ tracks: [] });
   }
 
   try {
     const tracks = await searchSpotifyTracks(query, 5);
     return NextResponse.json({ tracks });
   } catch (err) {
-    console.error('Spotify search error:', err);
-    // Return empty results instead of crashing
-    return NextResponse.json({ tracks: [], error: String(err) }, { status: 200 });
+    console.error('Music search error:', err);
+    return NextResponse.json({ tracks: [] });
   }
 }
