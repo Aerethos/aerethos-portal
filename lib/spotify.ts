@@ -2,8 +2,13 @@ import type { SpotifyTrack } from '@/types';
 
 // ── Get access token (Client Credentials flow — no user login needed) ─────────
 async function getSpotifyToken(): Promise<string> {
-  const clientId = process.env.SPOTIFY_CLIENT_ID!;
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET!;
+  const clientId = process.env.SPOTIFY_CLIENT_ID || '';
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET || '';
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Spotify credentials missing from environment variables');
+  }
+
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
   const res = await fetch('https://accounts.spotify.com/api/token', {
@@ -13,11 +18,17 @@ async function getSpotifyToken(): Promise<string> {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: 'grant_type=client_credentials',
-    next: { revalidate: 3500 }, // Cache token for ~1 hour
+    cache: 'no-store',
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(`Spotify auth failed: ${data.error}`);
+
+  if (!res.ok) {
+    console.error('Spotify auth failed:', res.status, JSON.stringify(data));
+    throw new Error(`Spotify auth failed: ${data.error} — ${data.error_description}`);
+  }
+
+  console.log('Spotify token obtained successfully');
   return data.access_token;
 }
 
@@ -26,22 +37,42 @@ export async function searchSpotifyTracks(
   query: string,
   limit = 5
 ): Promise<SpotifyTrack[]> {
-  const token = await getSpotifyToken();
+  let token: string;
+
+  try {
+    token = await getSpotifyToken();
+  } catch (err) {
+    console.error('Failed to get Spotify token:', err);
+    return [];
+  }
 
   const params = new URLSearchParams({
     q: query,
     type: 'track',
     limit: String(limit),
-    market: 'IE', // Prioritise Irish market results
+    market: 'IE',
   });
 
   const res = await fetch(
     `https://api.spotify.com/v1/search?${params}`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    }
   );
 
-  if (!res.ok) throw new Error('Spotify search failed');
+  if (!res.ok) {
+    const body = await res.text();
+    console.error('Spotify search failed:', res.status, body);
+    return [];
+  }
+
   const data = await res.json();
+
+  if (!data.tracks?.items) {
+    console.error('Unexpected Spotify response:', JSON.stringify(data));
+    return [];
+  }
 
   return data.tracks.items.map((item: SpotifyAPITrack) => ({
     id: item.id,
@@ -55,14 +86,24 @@ export async function searchSpotifyTracks(
 
 // ── Get a specific track by ID ─────────────────────────────────────────────────
 export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | null> {
-  const token = await getSpotifyToken();
+  let token: string;
+
+  try {
+    token = await getSpotifyToken();
+  } catch {
+    return null;
+  }
 
   const res = await fetch(
     `https://api.spotify.com/v1/tracks/${trackId}`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    }
   );
 
   if (!res.ok) return null;
+
   const item: SpotifyAPITrack = await res.json();
 
   return {
