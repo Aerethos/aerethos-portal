@@ -90,7 +90,7 @@ function TrackSearch({
             value={query}
             onChange={e => { setQuery(e.target.value); setShowResults(true); }}
             onFocus={() => results.length > 0 && setShowResults(true)}
-            onBlur={() => setTimeout(() => setShowResults(false), 150)}
+            onBlur={() => setTimeout(() => setShowResults(false), 300)}
             placeholder="Song title or artist..."
           />
           {searching && (
