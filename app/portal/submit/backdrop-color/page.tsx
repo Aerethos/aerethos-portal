@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { usePortal } from '@/lib/portal-context';
 
 const COLORS = [
   { name: 'Ocean Blue',    hex: '#4A7BA7' },
@@ -20,7 +21,19 @@ const COLORS = [
 
 export default function BackdropColorStep() {
   const router = useRouter();
-  const [selected, setSelected] = useState(COLORS[0]);
+  const { form, updateForm, saveStep, saving } = usePortal();
+  const [selected, setSelected] = useState(
+    COLORS.find(c => c.hex === form.backdropColorHex) ?? COLORS[0]
+  );
+
+  const handleNext = async () => {
+    updateForm({ backdropColorHex: selected.hex, backdropColorName: selected.name });
+    await saveStep({
+      backdrop_color_hex: selected.hex,
+      backdrop_color_name: selected.name,
+    });
+    router.push('/portal/submit/memory-photos');
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
@@ -29,9 +42,10 @@ export default function BackdropColorStep() {
           <span className="portal-logo">AerEthos</span>
           <span className="portal-logo-sub">Student Portal</span>
         </div>
-        <a href="/portal/dashboard" className="ae-btn-secondary" style={{ fontSize: 10, textDecoration: 'none' }}>Dashboard</a>
+        <a href="/portal/dashboard" className="ae-btn-secondary" style={{ fontSize: 10, textDecoration: 'none' }}>
+          {saving ? 'Saving...' : 'Dashboard'}
+        </a>
       </header>
-
       <div style={{ paddingTop: 64 }}>
         <div className="progress-strip">
           <div style={{ maxWidth: 680, margin: '0 auto' }}>
@@ -43,63 +57,34 @@ export default function BackdropColorStep() {
           </div>
         </div>
       </div>
-
       <div className="portal-content">
         <div className="ae-card fade-up">
           <div className="ae-eyebrow"><div className="ae-eyebrow-line"/><span className="ae-eyebrow-text">Step 02</span></div>
           <h1 className="ae-h1">Choose your<br/><em>backdrop colour.</em></h1>
-          <p className="ae-lead">This colour appears behind your portrait on your yearbook page. Choose something that reflects your personality.</p>
-
-          {/* Colour grid */}
+          <p className="ae-lead">This colour appears behind your portrait on your yearbook page.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 36 }}>
             {COLORS.map(color => (
-              <button
-                key={color.hex}
-                onClick={() => setSelected(color)}
-                className={`color-swatch ${selected.hex === color.hex ? 'selected' : ''}`}
-                style={{ backgroundColor: color.hex, border: 'none', cursor: 'pointer', aspectRatio: '1', position: 'relative' }}
-              >
+              <button key={color.hex} onClick={() => setSelected(color)}
+                style={{ backgroundColor: color.hex, border: 'none', cursor: 'pointer', aspectRatio: '1', position: 'relative',
+                  outline: selected.hex === color.hex ? '2px solid var(--gold)' : 'none', outlineOffset: 3 }}>
                 {selected.hex === color.hex && (
-                  <div className="color-swatch-check">✓</div>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: 'white', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))' }}>✓</div>
                 )}
-                <div className="color-swatch-name">{color.name}</div>
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '6px 8px', background: 'linear-gradient(transparent, rgba(0,0,0,0.45))', fontSize: 10, color: 'white', fontFamily: "'DM Sans', sans-serif" }}>{color.name}</div>
               </button>
             ))}
           </div>
-
-          {/* Preview */}
-          <div style={{
-            padding: '32px',
-            background: 'rgba(0,53,102,0.03)',
-            border: '1px solid rgba(0,53,102,0.07)',
-            marginBottom: 36,
-            textAlign: 'center',
-          }}>
+          <div style={{ padding: '32px', background: 'rgba(0,53,102,0.03)', border: '1px solid rgba(0,53,102,0.07)', marginBottom: 36, textAlign: 'center' }}>
             <div style={{ fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--blue)', opacity: 0.4, marginBottom: 20, fontFamily: "'DM Sans', sans-serif" }}>Preview</div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <div style={{
-                width: 120, height: 120, borderRadius: '50%',
-                backgroundColor: selected.hex,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: `0 16px 40px ${selected.hex}55`,
-                transition: 'background-color 0.3s, box-shadow 0.3s',
-              }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontFamily: "'DM Sans', sans-serif", letterSpacing: '0.06em' }}>Your Photo</span>
-              </div>
+            <div style={{ width: 120, height: 120, borderRadius: '50%', backgroundColor: selected.hex, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 16px 40px ${selected.hex}55`, transition: 'background-color 0.3s' }}>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontFamily: "'DM Sans', sans-serif" }}>Your Photo</span>
             </div>
-            <div style={{ marginTop: 16, fontSize: 13, color: 'var(--blue)', opacity: 0.55 }}>
-              Selected: <strong style={{ fontWeight: 500, opacity: 1 }}>{selected.name}</strong>
-            </div>
+            <div style={{ marginTop: 16, fontSize: 13, color: 'var(--blue)', opacity: 0.55 }}>Selected: <strong style={{ fontWeight: 500 }}>{selected.name}</strong></div>
           </div>
-
-          <div className="ae-notice" style={{ marginBottom: 36 }}>
-            <div className="ae-notice-body">This colour will be the signature accent on your yearbook page — it&apos;s used for your name ring and background. Choose something that feels like you.</div>
-          </div>
-
           <div className="step-nav">
             <button className="ae-btn-secondary" onClick={() => router.push('/portal/submit/profile-photo')}>← Back</button>
-            <button className="ae-btn-primary" onClick={() => router.push('/portal/submit/memory-photos')}>
-              <span>Next: Memory Photos →</span>
+            <button className="ae-btn-primary" onClick={handleNext} disabled={saving}>
+              <span>{saving ? 'Saving...' : 'Next: Memory Photos →'}</span>
             </button>
           </div>
         </div>
