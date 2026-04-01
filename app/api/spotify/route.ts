@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ tracks });
   } catch (err) {
     console.error('Spotify search error:', err);
-    return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+    // Return empty results instead of crashing
+    return NextResponse.json({ tracks: [], error: String(err) }, { status: 200 });
   }
 }
