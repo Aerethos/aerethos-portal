@@ -21,7 +21,7 @@ function TrackSearch({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
-    if (query.length < 2) { setResults([]); return; }
+    if (query.length < 2) { setResults([]); setShowResults(false); return; }
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
@@ -49,7 +49,6 @@ function TrackSearch({
     <div className="track-card">
       <div className="track-card-label">Track 0{num}</div>
 
-      {/* Selected track display */}
       {selected && !showResults && (
         <div className="track-found" style={{ marginBottom: 16 }}>
           {selected.albumArtUrl && (
@@ -80,7 +79,6 @@ function TrackSearch({
         </div>
       )}
 
-      {/* Search input */}
       <div style={{ position: 'relative' }}>
         <label className="ae-label">
           {selected ? 'Search for a different track' : 'Search Spotify'}
@@ -92,6 +90,7 @@ function TrackSearch({
             value={query}
             onChange={e => { setQuery(e.target.value); setShowResults(true); }}
             onFocus={() => results.length > 0 && setShowResults(true)}
+            onBlur={() => setTimeout(() => setShowResults(false), 150)}
             placeholder="Song title or artist..."
           />
           {searching && (
@@ -106,7 +105,6 @@ function TrackSearch({
           )}
         </div>
 
-        {/* Results dropdown */}
         {showResults && results.length > 0 && (
           <div style={{
             position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
@@ -118,6 +116,7 @@ function TrackSearch({
             {results.map(track => (
               <button
                 key={track.id}
+                onMouseDown={e => e.preventDefault()}
                 onClick={() => handleSelect(track)}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 12,
@@ -220,8 +219,8 @@ export default function TopTracksStep() {
 
           <div className="ae-notice" style={{ marginBottom: 36 }}>
             <div className="ae-notice-body">
-              Can&apos;t find your track? Try searching just the song title, or just the artist name. 
-              Spotify&apos;s catalogue covers most songs — if yours isn&apos;t there, contact 
+              Can&apos;t find your track? Try searching just the song title, or just the artist name.
+              Spotify&apos;s catalogue covers most songs — if yours isn&apos;t there, contact
               <a href="mailto:nathan@aerethos.com" style={{ color: 'var(--gold)', marginLeft: 4 }}>nathan@aerethos.com</a> and we&apos;ll sort it.
             </div>
           </div>
